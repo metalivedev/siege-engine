@@ -5,4 +5,6 @@ ADD . /opt/siege-src
 WORKDIR /opt/siege-src
 RUN ./configure --with-ssl=/usr
 RUN make install
+# Default directory for logs
+RUN mkdir -p /usr/local/var
 ENTRYPOINT ["/usr/local/bin/siege"]
