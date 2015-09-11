@@ -1,7 +1,7 @@
 /**
  * Variable evaluation
  *
- * Copyright (C) 2003-2013 by
+ * Copyright (C) 2003-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is part of siege
  *
@@ -67,7 +67,7 @@ evaluate(HASH hash_table, char *buf)
     if (getenv(string) != NULL) {
       ENV = 1;
     } else {
-      string = '\0'; /* user botched his config file */
+      string = NULL; /* user botched his config file */
     }
   }
  

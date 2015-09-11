@@ -1,7 +1,7 @@
 /**
  * FTP protocol support
  *
- * Copyright (C) 2013 by
+ * Copyright (C) 2013-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is distributed as part of Siege
  *
@@ -156,7 +156,9 @@ ftp_stor(CONN *C, URL U)
 
   file = xmalloc(len);
   memset(file, '\0', len);
-  snprintf(file, len, "%s-%u.%s", parts[0], id, (parts[1]==NULL)?"":parts[1]);
+
+  /* NOTE: changed %u to %zu as per C99 */
+  snprintf(file, len, "%s-%zu.%s", parts[0], id, (parts[1]==NULL)?"":parts[1]);
   if (my.unique) {
     C->ftp.code = __request(C, "STOR %s", file);
   } else {

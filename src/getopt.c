@@ -1,5 +1,3 @@
-/* $Id: getopt.c,v 1.1.1.1 2006/04/17 18:37:34 jdfulmer Exp $ */
-
 #include <config.h>
 
 #ifndef HAVE_GETOPT_LONG

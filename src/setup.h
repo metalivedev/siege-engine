@@ -1,7 +1,7 @@
 /**
  * Package header
  *
- * Copyright (C) 2000-2007 by
+ * Copyright (C) 2000-2013 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege 
  * 
@@ -162,7 +162,7 @@ struct CONFIG
   BOOLEAN display;      /* boolean, display the thread id verbose  */
   BOOLEAN config;       /* boolean, prints the configuration       */
   int     cusers;       /* default concurrent users value.         */
-  int     delay;        /* range for random time delay, see -d     */
+  float   delay;        /* range for random time delay, see -d     */
   int     timeout;      /* socket connection timeout value, def:10 */
   BOOLEAN bench;        /* signifies a benchmarking run, no delay  */
   BOOLEAN internet;     /* use random URL selection if TRUE        */

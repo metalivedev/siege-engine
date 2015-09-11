@@ -1,7 +1,7 @@
 /**
  * Utility Functions
  *
- * Copyright (C) 2001-2007 
+ * Copyright (C) 2001-2014 
  * by Jeffrey Fulmer <jeff@joedog.org>, et al.
  * This file is part of Siege
  *

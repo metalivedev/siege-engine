@@ -1,7 +1,7 @@
 /**
  * Variable evaluation
  *
- * Copyright (C) 2003-2013 by
+ * Copyright (C) 2003-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is part of siege
  *

@@ -1,7 +1,7 @@
 /**
  * Siege, http regression tester / benchmark utility
  *
- * Copyright (C) 2000-2013 by  
+ * Copyright (C) 2000-2014 by  
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege
  *
@@ -147,7 +147,7 @@ display_help()
   printf("                            default is used: PREFIX/var/%s.log\n", program_name);
   puts("  -m, --mark=\"text\"         MARK, mark the log file with a string." );
   puts("  -d, --delay=NUM           Time DELAY, random delay before each requst");
-  puts("                            between 1 and NUM. (NOT COUNTED IN STATS)");
+  puts("                            between .001 and NUM. (NOT COUNTED IN STATS)");
   puts("  -H, --header=\"text\"       Add a header to request (can be many)" ); 
   puts("  -A, --user-agent=\"text\"   Sets User-Agent in request" ); 
   puts("  -T, --content-type=\"text\" Sets Content-Type in request" ); 
@@ -216,7 +216,7 @@ parse_cmdline(int argc, char *argv[])
         break;
       case 'd':
 	/* XXX range checking? use strtol? */
-        my.delay   = atoi(optarg);
+        my.delay   = atof(optarg);
 	if(my.delay < 0){
 	  my.delay = 0; 
 	}
@@ -294,6 +294,7 @@ int
 main(int argc, char *argv[])
 {
   int            x; 
+  int            j = 0;
   int            result;
   DATA           D    = new_data();
   ARRAY          urls = new_array();
@@ -320,11 +321,11 @@ main(int argc, char *argv[])
   memset(&my, 0, sizeof(struct CONFIG));
 
   parse_rc_cmdline(argc, argv); 
-  if (init_config() < 0) {      /* defined in init.h   */
-    exit( EXIT_FAILURE );       /* polly was a girl... */
+  if (init_config() < 0) { 
+    exit(EXIT_FAILURE); 
   } 
-  parse_cmdline(argc, argv);    /* defined above       */
-  ds_module_check();            /* check config integ  */
+  parse_cmdline(argc, argv);
+  ds_module_check(); 
 
   /**
    * XXX: we should consider moving the following
@@ -341,9 +342,9 @@ main(int argc, char *argv[])
     my.length = read_cfg_file(lines, my.file); 
   }
 
-  if (my.reps < 0) {
-    my.reps = my.length;
-  }
+  //if (my.reps < 0) {
+  //  my.reps = my.length;
+  //}
 
   if (my.length == 0) { 
     display_help();
@@ -449,7 +450,27 @@ main(int argc, char *argv[])
     client[x].code            = 0;
     client[x].ok200           = 0;   
     client[x].fail            = 0; 
-    client[x].urls            = urls;
+    if (my.reps > 0 ) {
+      /** 
+       * Traditional -r/--reps where each user
+       * loops through every URL in the file. 
+       */
+      client[x].urls = urls;
+    } else {
+      /**
+       * -r once/--reps=once where each URL
+       * in the file is hit only once...
+       */
+      int   len = (array_length(urls)/my.cusers); 
+      ARRAY tmp = new_array();
+      for ( ; j < ((x+1) * len) && j < (int)array_length(urls); j++) {
+        URL u = array_get(urls, j);
+        if (u != NULL && url_get_hostname(u) != NULL && strlen(url_get_hostname(u)) > 1) {
+          array_npush(tmp, array_get(urls, j), URLSIZE);    
+        }
+      } 
+      client[x].urls = tmp;
+    }
     client[x].auth.www        = 0;
     client[x].auth.proxy      = 0;
     client[x].auth.type.www   = BASIC;

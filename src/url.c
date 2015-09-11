@@ -1,8 +1,11 @@
 /**
  * URL Support
  *
- * Copyright (C) 2013 by
+ * Copyright (C) 2013-2015 
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
+ * Copyright (C) 1999 by
+ * Jeffrey Fulmer - <jeff@joedog.org>.
+ *
  * This file is distributed as part of Siege
  *
  * This program is free software; you can redistribute it and/or modify
@@ -139,7 +142,7 @@ url_set_hostname(URL this, char *hostname)
   xfree(this->hostname);
   len = strlen(hostname)+1;
   this->hostname = xmalloc(len);
-  memset(this->hostname, 0, sizeof this->hostname);
+  memset(this->hostname, '\0', len);
   strncpy(this->hostname, hostname, len);
   return;
 }
@@ -160,7 +163,7 @@ url_set_etag(URL this, char *etag)
 
   len = strlen(etag)+1;
   this->etag = xmalloc(len);
-  memset(this->etag, 0, sizeof this->etag);
+  memset(this->etag, '\0', len);
   strncpy(this->etag, etag, len);
   return;
 }
@@ -320,6 +323,14 @@ url_get_posttemp(URL this) {
 
 public char *
 url_get_conttype(URL this) {
+
+  if (this->conttype == NULL) {
+    if (! empty(my.conttype)) {
+      this->conttype = xstrdup(my.conttype);
+    } else {
+      this->conttype = xstrdup("application/x-www-form-urlencoded");
+    }
+  }
   return this->conttype;
 }
 
@@ -366,7 +377,7 @@ url_get_etag(URL this)
 
   len = strlen(this->etag) + 18;
   tag = xmalloc(len);
-  memset(tag, 0, sizeof tag);
+  memset(tag, '\0', len);
 
   snprintf(tag, len, "If-None-Match: %s\015\012", this->etag);
   return tag;
@@ -424,7 +435,7 @@ url_dump(URL this)
     printf("Params:   %s\n", url_get_parameters(this));
   printf("Query:     %s\n", url_get_query(this));
   printf("Fragment:  %s\n", url_get_fragment(this));
-  printf("Post Len:  %d\n", url_get_postlen(this));
+  printf("Post Len:  %d\n", (int)url_get_postlen(this));
   printf("Post Data: %s\n", url_get_postdata(this));
   printf("Cont Type: %s\n", url_get_conttype(this));
   //time_t    expires;
@@ -433,6 +444,61 @@ url_dump(URL this)
   //char *    etag;
   //char *    realm;
   return;
+}
+
+URL
+url_normalize(URL req, char *location)
+{
+  URL    ret;
+  char * url;
+  size_t len = strlen(url_get_absolute(req)) + strlen(location) + 32;
+
+  if (strchr(location, ':') != NULL) {
+    // it's very likely normalized
+    ret = new_url(location);
+    // but we better test it...
+    if (strlen(url_get_hostname(ret)) > 1) {
+      return ret;
+    }
+  }
+
+  if (strchr(location, '.') != NULL) {
+    // it's *maybe* host/path
+    ret = new_url(location);
+    // so we better test it...
+    if (strchr(url_get_hostname(ret), '.') != NULL) {
+      return ret;
+    }
+  }
+
+  // XXX: 8/20/2014 - YES. Yes, I do.
+  if (strstr(location, "localhost") != NULL) {
+    ret = new_url(location);
+    if (strlen(url_get_hostname(ret)) == 9) {
+      // we found and correctly parsed localhost
+      return ret;
+    }
+  }
+
+  /**
+   * If we got this far we better construct it...
+   */
+  url = (char*)malloc(len);
+  memset(url, '\0', len);
+
+  if (location[0] == '/') {
+    if (strlen(location) > 1 && location[1] == '/') {
+      /* starts with // so we should use base protocol */
+      snprintf(url, len, "%s:%s", url_get_scheme_name(req), location);
+    } else {
+      snprintf(url, len, "%s://%s:%d%s", url_get_scheme_name(req), url_get_hostname(req), url_get_port(req), location);
+    }
+  } else {
+    snprintf(url, len, "%s://%s:%d/%s", url_get_scheme_name(req), url_get_hostname(req), url_get_port(req), location);
+  }
+  ret = new_url(url);
+  free(url);
+  return ret;
 }
 
 private void
@@ -533,7 +599,7 @@ __url_set_absolute(URL this, char *url)
   len = strlen(url)+5;
   if (!__url_has_scheme(url)) {
     this->url = xmalloc(len+7);
-    memset(this->url, '\0', sizeof this->url);
+    memset(this->url, '\0', len+7);
     slash = strstr(url, "/");
     if (slash) {
       snprintf(this->url, len+7, "http://%s", url);
@@ -542,7 +608,7 @@ __url_set_absolute(URL this, char *url)
     }
   } else {
     this->url = xmalloc(len);
-    memset(this->url, '\0', sizeof this->url);
+    memset(this->url, '\0', len);
     snprintf(this->url, len, "%s", url);
   }
   return this->url;

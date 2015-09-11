@@ -1,7 +1,7 @@
 /**
  * SIEGE socket header file
  *
- * Copyright (C) 2000-2009 by
+ * Copyright (C) 2000-2014 by
  * by Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is distributed as part of Siege 
  *
@@ -37,6 +37,10 @@
 #ifdef  HAVE_NETDB_H
 # include <netdb.h>
 #endif/*HAVE_NETDB_H*/ 
+
+#ifdef  HAVE_POLL
+# include <poll.h>
+#endif/*HAVE_POLL*/
 
 #ifdef  HAVE_SSL
 # include <openssl/ssl.h>
@@ -111,7 +115,7 @@ typedef struct
 #ifdef  HAVE_SSL
   SSL        *ssl;
   SSL_CTX    *ctx;
-  SSL_METHOD *method;
+  const SSL_METHOD *method;
   X509       *cert;
 #else 
   BOOLEAN     nossl;
@@ -120,6 +124,9 @@ typedef struct
   int      pos_ini;
   char     buffer[4096];
   char     chkbuf[1024];
+#ifdef  HAVE_POLL
+  struct   pollfd pfd[1];
+#endif/*HAVE_POLL*/
   fd_set   *ws;
   fd_set   *rs;
   SDSET    state;  

@@ -1,7 +1,7 @@
 /**
  * Dynamic Array
  *
- * Copyright (C) 2006-2013 by
+ * Copyright (C) 2006-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is distributed as part of Siege
  *
@@ -23,6 +23,8 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include <stdlib.h>
+
 /**
  * ARRAY object
  */
@@ -37,6 +39,7 @@ void * array_get(ARRAY this, int index);
 void * array_next(ARRAY this);
 void * array_prev(ARRAY this);
 size_t array_length(ARRAY this);
+char * array_to_string(ARRAY this);
 
 #endif/*ARRAY_H*/
 

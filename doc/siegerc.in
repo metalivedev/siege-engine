@@ -428,6 +428,18 @@ unique = true
 # ssl-ciphers = 
 
 #
+# Proxy Host. You can use siege to test a proxy server but
+# you need to configure it to use one. You'll need to name
+# a proxy host and the port it's listening one. The settings
+# are proxy-host and proxy-port. The following example shows
+# how to use them.
+# ex: proxy-host = proxy.joedog.org
+#     proxy-port = 3123
+#
+# proxy-host =
+# proxy-port =
+
+#
 # Proxy-Authenticate. When scout hits a proxy server which
 # requires username and password authentication, it will this
 # username and password to the server. The format is username,

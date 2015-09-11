@@ -1,7 +1,7 @@
 /**
  * SIEGE http header file
  *
- * Copyright (C) 2000-2013 by Jeffrey Fulmer <jeff@joedog.org>, et al
+ * Copyright (C) 2000-2014 by Jeffrey Fulmer <jeff@joedog.org>, et al
  * This file is distributed as part of Siege 
  *
  * This program is free software; you can redistribute it and/or modify

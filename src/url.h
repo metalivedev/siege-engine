@@ -1,7 +1,7 @@
 /**
  * URL Support
  *
- * Copyright (C) 2013 by
+ * Copyright (C) 2013-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is distributed as part of Siege
  *
@@ -138,5 +138,6 @@ char *   url_get_realm(URL this);
 void     url_set_realm(URL this, char *realm);
 void     url_set_username(URL this, char *username);
 void     url_set_password(URL this, char *password);
+URL      url_normalize(URL req, char *location);
 
 #endif/*__URL_H*/
