@@ -1,7 +1,7 @@
 /**
  * SIEGE socket library
  *
- * Copyright (C) 2000-2013 by
+ * Copyright (C) 2000-2015 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege 
  *
@@ -33,6 +33,10 @@
 #include <pthread.h>
 #include <fcntl.h>
 
+#ifdef HAVE_POLL
+# include <poll.h>
+#endif/*HAVE_POLL*/
+
 #ifdef  HAVE_UNISTD_H
 # include <unistd.h>
 #endif/*HAVE_UNISTD_H*/
@@ -63,6 +67,10 @@
 private int     __socket_block(int socket, BOOLEAN block);
 private ssize_t __socket_write(int sock, const void *vbuf, size_t len);  
 private BOOLEAN __socket_check(CONN *C, SDSET mode);
+private BOOLEAN __socket_select(CONN *C, SDSET mode);
+#ifdef  HAVE_POLL
+private BOOLEAN __socket_poll(CONN *C, SDSET mode);
+#endif/*HAVE_POLL*/
 #ifdef  HAVE_SSL
 private ssize_t __ssl_socket_write(CONN *C, const void *vbuf, size_t len);
 #endif/*HAVE_SSL*/
@@ -94,6 +102,11 @@ new_socket(CONN *C, const char *hostparam, int portparam)
   char *aixbuf;
   int  rc;
 #endif/*_AIX*/
+
+  if (hostparam == NULL) {
+    NOTIFY(ERROR, "Unable to resolve host %s:%d",  __FILE__, __LINE__);
+    return -1; 
+  }
 
   C->encrypt  = (C->scheme == HTTPS) ? TRUE: FALSE;
   C->state    = UNDEF;
@@ -149,16 +162,32 @@ new_socket(CONN *C, const char *hostparam, int portparam)
   rc  = gethostbyname_r(hn, (struct hostent *)aixbuf,
                        (struct hostent_data *)(aixbuf + sizeof(struct hostent)));
   hp = (struct hostent*)aixbuf;
-#elif ( defined(hpux) || defined(__hpux) || defined(__osf__) )
+#elif (defined(hpux) || defined(__hpux) || defined(__osf__))
   hp = gethostbyname(hn);
   herrno = h_errno;
 #else
-  /* simply hoping that gethostbyname is thread-safe */
+  /**
+   * Let's just hope gethostbyname is tread-safe
+   */
   hp = gethostbyname(hn);
   herrno = h_errno;
 #endif/*OS SPECIFICS*/ 
 
-  if(hp == NULL){ return -1; } 
+  /**
+   * If hp is NULL, then we did not get good information
+   * from the name server. Let's notify the user and bail
+   */
+  if (hp == NULL) {
+    switch(herrno) {
+      case HOST_NOT_FOUND: { NOTIFY(ERROR, "Host not found: %s\n", hostparam);                           break; }
+      case NO_ADDRESS:     { NOTIFY(ERROR, "HOst does not have an IP address: %s\n", hostparam);         break; }
+      case NO_RECOVERY:    { NOTIFY(ERROR, "A non-recoverable resolution error for %s\n", hostparam);    break; }
+      case TRY_AGAIN:      { NOTIFY(ERROR, "A temporary resolution error for %s\n", hostparam);          break; }
+      default:             { NOTIFY(ERROR, "Unknown error code from gethostbyname for %s\n", hostparam); break; }
+    }
+    return -1; 
+  } 
+
   memset((void*) &cli, 0, sizeof(cli));
   memcpy(&cli.sin_addr, hp->h_addr, hp->h_length);
 #if defined(sun)
@@ -205,20 +234,9 @@ new_socket(CONN *C, const char *hostparam, int portparam)
       default:            {NOTIFY(ERROR, "socket: %d unknown network error.",  pthread_self()); break;}
     } socket_close(C); return -1;
   } else {
-    struct timeval timeout;
-    fd_set rs;
-    fd_set ws; 
-    FD_ZERO(&rs);
-    FD_ZERO(&ws);
-    FD_SET(C->sock, &rs);
-    FD_SET(C->sock, &ws);
-    memset((void *)&timeout, '\0', sizeof(struct timeval));
-    timeout.tv_sec  = (my.timeout > 0)?my.timeout:30;
-    timeout.tv_usec = 0;
-    res = select(C->sock+1, &rs, &ws, NULL, &timeout);
-    if ((res == -1) && (errno == EINTR)) {
+    if (__socket_check(C, READ) == FALSE) {
       pthread_testcancel();
-      fprintf(stderr, "socket: connection timed out\n");
+      NOTIFY(WARNING, "socket: read check timed out(%d) %s:%d", my.timeout, __FILE__, __LINE__);
       socket_close(C);
       return -1; 
     } else { 
@@ -244,61 +262,97 @@ new_socket(CONN *C, const char *hostparam, int portparam)
   return(C->sock);
 }
 
+/**
+ * Conditionally determines whether or not a socket is ready.
+ * This function calls __socket_poll if HAVE_POLL is defined in
+ * config.h, else it uses __socket_select
+ */
 private BOOLEAN 
 __socket_check(CONN *C, SDSET mode)
 {
-  int    res;
-  fd_set fds;
-  fd_set *rs = NULL; 
-  fd_set *ws = NULL;
-  double timo;
-  struct timeval timeout;
+#ifdef HAVE_POLL
+ if (C->sock >= FD_SETSIZE) {
+   return __socket_poll(C, mode);
+ } else {
+   return __socket_select(C, mode);
+ } 
+#else 
+ return __socket_select(C, mode);
+#endif/*HAVE_POLL*/
+}
 
-  if (C->state == mode) {
-    return TRUE;
-  }
+#ifdef HAVE_POLL
+private BOOLEAN
+__socket_poll(CONN *C, SDSET mode)
+{
+  int res;
+  int timo = (my.timeout) ? my.timeout * 1000 : 15000;
+  __socket_block(C->sock, FALSE);
 
-  FD_ZERO(&fds);
-  FD_SET (C->sock, &fds);
-  if (mode==WRITE) {
-    *(&ws) = &fds;
-  } else {
-    *(&rs) = &fds;
-  }
-
-  timo = (my.timeout)?my.timeout:15;
-  timeout.tv_sec  = (long)timo;
-  timeout.tv_usec = 1000000L * (timo - (long)timo);
-
-  if (mode==WRITE) {
-    __socket_block(C->sock, FALSE);
-  }
+  C->pfd[0].fd     = C->sock + 1;
+  C->pfd[0].events |= POLLIN;
 
   do {
-    res = select(C->sock + 1, rs, ws, NULL, &timeout);
+    res = poll(C->pfd, 1, timo);
     pthread_testcancel();
-  } while (res < 0 && errno == EINTR);
-  
-  if (mode==WRITE) {
-    __socket_block(C->sock, TRUE);
-  }
+    if (res < 0) puts("LESS THAN ZERO!");
+  } while (res < 0); // && errno == EINTR);
 
   if (res == 0) {
     errno = ETIMEDOUT;
   }
-
-  if (res < 1) {
-    NOTIFY(WARNING, "socket: %d select timed out", pthread_self());
-  }
-
+ 
   if (res <= 0) {
     C->state = UNDEF;
+    NOTIFY(WARNING, 
+      "socket: polled(%d) and discovered it's not ready %s:%d", 
+      (my.timeout)?my.timeout:15, __FILE__, __LINE__
+    );
     return FALSE;
   } else {
     C->state = mode;
     return TRUE;
   }
-  //return (res <= 0) ? FALSE : TRUE;
+}
+#endif/*HAVE_POLL*/
+
+private BOOLEAN
+__socket_select(CONN *C, SDSET mode)
+{
+  struct timeval timeout;
+  int    res;
+  fd_set rs;
+  fd_set ws;
+  memset((void *)&timeout, '\0', sizeof(struct timeval));
+  timeout.tv_sec  = (my.timeout > 0)?my.timeout:30;
+  timeout.tv_usec = 0;
+
+  if ((C->sock < 0) || (C->sock >= FD_SETSIZE)) {
+    // FD_SET can't handle it
+    return FALSE;
+  }
+
+  do {
+    FD_ZERO(&rs);
+    FD_ZERO(&ws);
+    FD_SET(C->sock, &rs);
+    FD_SET(C->sock, &ws);
+    res = select(C->sock+1, &rs, &ws, NULL, &timeout);
+    pthread_testcancel();
+  } while (res < 0 && errno == EINTR);
+
+  if (res == 0) {
+    errno = ETIMEDOUT;
+  }
+
+  if (res <= 0) {
+    C->state = UNDEF;
+    NOTIFY(WARNING, "socket: select and discovered it's not ready %s:%d", __FILE__, __LINE__);
+    return FALSE;
+  } else {
+    C->state = mode;
+    return TRUE;
+  }
 }
 
 /**
@@ -440,10 +494,11 @@ socket_read(CONN *C, void *vbuf, size_t len)
   #ifdef HAVE_SSL
     while (n > 0) {
       if (__socket_check(C, READ) == FALSE) {
+        NOTIFY(WARNING, "socket: read check timed out(%d) %s:%d", (my.timeout)?my.timeout:15, __FILE__, __LINE__);
 	return -1;
       }
       if ((r = SSL_read(C->ssl, buf, n)) < 0) {
-        if (errno == EINTR)
+        if (errno == EINTR || SSL_get_error(C->ssl, r) == SSL_ERROR_WANT_READ)
           r = 0;
         else
           return -1;
@@ -457,6 +512,7 @@ socket_read(CONN *C, void *vbuf, size_t len)
     while (n > 0) {
       if (C->inbuffer < len) {
         if (__socket_check(C, READ) == FALSE) {
+          NOTIFY(WARNING, "socket: read check timed out(%d) %s:%d", (my.timeout)?my.timeout:15, __FILE__, __LINE__);
           return -1;
         }
       }
@@ -465,6 +521,7 @@ socket_read(CONN *C, void *vbuf, size_t len)
         memmove(C->buffer,&C->buffer[C->pos_ini],C->inbuffer);
         C->pos_ini = 0;
 	if (__socket_check(C, READ) == FALSE) {
+          NOTIFY(WARNING, "socket: read check timed out(%d) %s:%d", (my.timeout)?my.timeout:15, __FILE__, __LINE__);
 	  return -1;
 	}
         lidos = read(C->sock, &C->buffer[C->inbuffer], sizeof(C->buffer)-C->inbuffer);
@@ -550,11 +607,7 @@ socket_write(CONN *C, const void *buf, size_t len)
   size_t bytes;
 
   pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &type); 
-#if 0
-  if(__socket_check(C, READ) == WRITE){
-    return -1;
-  }
-#endif
+
   if (C->encrypt == TRUE) {
     /* handle HTTPS protocol */
     #ifdef HAVE_SSL

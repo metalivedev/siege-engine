@@ -1,6 +1,90 @@
 To email a contributor remove "DELETE" from the email address.
 (The DELETEs are necessary as this list is published online.)
 
+2015/06/03 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-1-0_JUN_03_2015
+ * src/version.c          Version increment: 3.1.0
+
+2015/06/03 Eric Abbott <eabbott@hubspotNOSPAM.com>
+ * src/setup.h            Changed delay to float
+ * src/client.c           Changed delay handling for float
+ * src/main.c             Changed delay handling for float
+ * src/init.c             Changed delay handling for float
+
+2015/06/03 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * src/init.c             XXX backed out 04/16 protective mem handling
+
+2015/05/19 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-1-0rc3_MAY_19_2015
+ * src/sock.h             Added struct for poll
+ * src/sock.c             Added __socket_poll for socks >= FD_SETSIZE
+ * src/version.c          Version increment: 3.1.0-rc3
+
+2015/05/15 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-1-0rc2_MAY_15_2015
+ * src/sock.c             Added poll in __socket_check for those who have it
+ * src/version.c          Release candidate: 3.1.0-rc2
+ * configure.ac           Added func_check for poll (HAVE_POLL in config.h)
+
+2015/05/13 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-1-0rc1_MAY_13_2015
+ * src/sock.c             Checked integrity of incoming host param 
+ * src/version.c          Release candidate: 3.1.0-rc1
+
+2015/04/16 Technion <https://github.com/technion>
+ * include/joedog.h       Removed asprintf from the CYGWIN block
+ * src/url.c              Added test for conttype in get_conttype
+ * src/init.c             Added protective memory handling
+
+2015/04/14 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * src/url.c              Fixed some broken memsets
+ * src/sock.c             Added error handling for unused herrno
+ * lib/memory.c           Removed unused variable from xstrcat
+
+2015/02/26 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-0-9_FEB_26-2015
+ * src/version.c          Version increment: 3.0.9
+
+2015/02/26 Warren Young <warren@NOSPAMetr-usa.com>
+ * src/url.c              Changed first normalize check url.c:449
+
+2015/02/26 Bo Borgerson <https://github.com/gigabo>
+ * src/sock.c             if (errno == EINTR || SSL_get_error(C->ssl, r) == SSL_ERROR_WANT_READ)
+
+2014/10/09 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * src/array.c            Fixed a memory leak; added free(this) in array_destroy
+ * src/array.h            Added prototype for array_to_string(ARRAY this);
+
+2014/09/05 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-0-8_SEP_05-2014
+ * src/http.c             Added :port to the host header on condition
+ * src/log.c              Added logfile location to error messages
+ * src/version.c          Version increment: 3.0.8
+
+2014/08/20 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-0-7_AUG_20-2014
+ * src/url.c              Handle localhost from a Location header
+ * src/version.c          Version increment: 3.0.7
+
+2014/07/18 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * src/ssl.c              SSL_initialise return TRUE if C->ssl not null
+
+2014/01/08 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-0-6_JAN_08-2014
+ * doc/siegerc.in         Updated to include proxy directives
+
+2013/10/31 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-0-6-beta2_OCT-31-2013
+ * src/client.c           Added support for HTTP-303
+ * src/version.c          Version increment: 3.0.6-beta2
+
+2013/10/27 Jeffrey Fulmer <http://www.joedog.org/support/>
+ * SIEGE RELEASE          RELEASE_3-0-6-beta1_OCT-27-2013
+ * src/main.c             Added new logic for --reps=once
+ * src/client.c           Moved __normalize to url.c; Change logic for -r once
+ * src/url.c              Added url_normalize(URL U, location); 
+ * src/version.c          Version increment: 3.0.6-beta1
+
 2013/10/17 Jeffrey Fulmer <http://www.joedog.org/support/>
  * SIEGE RELEASE          RELEASE_3-0-5_OCT-17-2013
  * src/version.c          Version increment: 3.0.5

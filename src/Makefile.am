@@ -22,11 +22,9 @@
 
 bin_PROGRAMS       =   siege
 
-INCLUDES           =   $(SSL_INCLUDE)
-
 WARN_CFLAGS        =   @WARN_CFLAGS@
 
-AM_CFLAGS          =   $(PTHREAD_CFLAGS) $(WARN_CFLAGS) $(SSL_CFLAGS)
+AM_CFLAGS          =   $(SSL_INCLUDE) $(PTHREAD_CFLAGS) $(WARN_CFLAGS) $(SSL_CFLAGS)
 
 AM_LDFLAGS         =   $(SSL_LDFLAGS) $(PTHREAD_LDFLAGS)  
 
@@ -37,6 +35,7 @@ siege_LDADD        =   $(top_srcdir)/lib/joedog/libjoedog.la
 siege_DEPENDENCIES =   $(top_srcdir)/lib/joedog/libjoedog.la 
 
 siege_SOURCES      =   \
+ansidecl.h             \
 array.c    array.h     \
 auth.c     auth.h      \
 base64.c   base64.h    \

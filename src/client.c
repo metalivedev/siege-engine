@@ -1,7 +1,7 @@
 /**
  * HTTP/HTTPS client support
  *
- * Copyright (C) 2000-2013 by
+ * Copyright (C) 2000-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege 
  *
@@ -48,8 +48,6 @@ private BOOLEAN __ftp (CONN *C, URL U, CLIENT *c);
 private BOOLEAN __init_connection(CONN *C, URL U, CLIENT *c);
 private void    __increment_failures();
 private int     __select_color(int code);
-private URL     __normalize(URL req, char *location);
-
 
 #ifdef  SIGNAL_CLIENT_PLATFORM
 static void signal_handler( int i );
@@ -82,9 +80,11 @@ float lomark = -1;
 void *
 start_routine(CLIENT *client)
 {
-  int x, y;                   /* loop counters, indices    */
-  int ret;                    /* function return value     */
-  CONN *C = NULL;             /* connection data (sock.h)  */ 
+  int       x, y;    // loop counters, indices 
+  int       ret;     //function return value  
+  int       len;     // main loop length 
+  CONN *C = NULL;    // connection data (sock.h)  
+
 #ifdef SIGNAL_CLIENT_PLATFORM
   sigset_t  sigs;
 #else
@@ -121,14 +121,14 @@ start_routine(CLIENT *client)
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &state);
 #endif/*SIGNAL_CLIENT_PLATFORM*/ 
   if (my.login == TRUE) {
-    URL tmp = new_url(array_get(my.lurl, 0));
+    URL tmp = new_url(array_next(my.lurl));
     url_set_ID(tmp, 0);
     __request(C, tmp, client);
   }
 
-  //for (x = 0, y = 0; x < my.reps; x++, y++) {
-  y = client->id * (my.length / my.cusers);
-  for (x = 0; x < my.reps; x++, y++) {
+  len = (my.reps == -1) ? (int)array_length(client->urls) : my.reps;
+  y   = (my.reps == -1) ? 0 : client->id * (my.length / my.cusers);
+  for (x = 0; x < len; x++, y++) {
     x = ((my.secs > 0) && ((my.reps <= 0)||(my.reps == MAXREPS))) ? 0 : x;
     if (my.internet == TRUE) {
       y = (unsigned int) (((double)pthread_rand_np(&(client->rand_r_SEED)) /
@@ -149,7 +149,6 @@ start_routine(CLIENT *client)
       }
     }
     if (y >= my.length || y < 0) { 
-      printf("y out of bounds: %d >= %d", y, my.length); 
       y = 0; 
     }
     URL tmp = array_get(client->urls, y);
@@ -227,8 +226,15 @@ __http(CONN *C, URL U, CLIENT *client)
 #else
     tmp = localtime(&now);
 #endif/*HAVE_LOCALTIME_R*/
-    if (tmp) len = strftime(fmtime, 64, "%Y-%m-%d %H:%M:%S", tmp);
-    else snprintf(fmtime, 64, "n/a");
+    if (tmp) { 
+      len = strftime(fmtime, 64, "%Y-%m-%d %H:%M:%S", tmp);
+      if (len == 0) {
+        memset(fmtime, '\0', 64);
+        snprintf(fmtime, 64, "n/a");
+      }
+    } else {
+      snprintf(fmtime, 64, "n/a");
+    }
   }
 
   if (url_get_scheme(U) == UNSUPPORTED) { 
@@ -242,10 +248,15 @@ __http(CONN *C, URL U, CLIENT *client)
     return FALSE;
   }
 
-  if (my.delay) {
+  if (my.delay >= 1) {
     pthread_sleep_np(
      (unsigned int) (((double)pthread_rand_np(&(client->rand_r_SEED)) /
                      ((double)RAND_MAX + 1) * my.delay ) + .5) 
+    );
+  } else if (my.delay >= .001) {
+    pthread_usleep_np(
+     (unsigned int) (((double)pthread_rand_np(&(client->rand_r_SEED)) /
+                     ((double)RAND_MAX + 1) * my.delay * 1000000 ) + .0005) 
     );
   }
 
@@ -257,14 +268,14 @@ __http(CONN *C, URL U, CLIENT *client)
   /**
    * write to socket with a GET/POST/PUT/DELETE/HEAD
    */
-  if (url_get_method(U) == GET || url_get_method(U) == HEAD) { 
-    if ((http_get(C, U)) == FALSE) {
+  if (url_get_method(U) == POST) { 
+    if ((http_post(C, U)) == FALSE) {
       C->connection.reuse = 0;
       socket_close(C);
       return FALSE;
     }
   } else { 
-    if ((http_post(C, U)) == FALSE) {
+    if ((http_get(C, U)) == FALSE) {
       C->connection.reuse = 0;
       socket_close(C);
       return FALSE;
@@ -364,6 +375,7 @@ __http(CONN *C, URL U, CLIENT *client)
   switch (head->code) {
     case 301:
     case 302:
+    case 303:
     case 307:
       if (my.follow && head->redirect[0]) {
         /**  
@@ -372,7 +384,7 @@ __http(CONN *C, URL U, CLIENT *client)
          *  OR
          * Location: /path/file.htm
          */ 
-        redirect_url = __normalize(U, head->redirect); //new_url(head->redirect);
+        redirect_url = url_normalize(U, head->redirect); //new_url(head->redirect);
 
         if (empty(url_get_hostname(redirect_url))) { 
           url_set_hostname(redirect_url, url_get_hostname(U));
@@ -755,45 +767,5 @@ __select_color(int code)
       return RED;
   }
   return RED;
-}
-
-private URL
-__normalize(URL req, char *location)
-{
-  URL    ret;
-  char * url;
-  size_t len = strlen(url_get_absolute(req)) + strlen(location) + 32;
-  if (strchr(location, ':') != NULL) {
-    // it's very likely normalized
-    ret = new_url(location);
-    // but we better test it...
-    if (strchr(url_get_hostname(ret), '.') != NULL) {
-      return ret;
-    }
-  }
-  if (strchr(location, '.') != NULL) {
-    // it's *maybe* host/path
-    ret = new_url(location);
-    // so we better test it...
-    if (strchr(url_get_hostname(ret), '.') != NULL) {
-      return ret;
-    }
-    // XXX: do I really need to test for localhost?
-  }
-
-  /**
-   * If we got this far we better construct it...
-   */
-  url = (char*)malloc(len);
-  memset(url, '\0', len);
-
-  if (location[0] == '/') {
-    snprintf(url, len, "%s://%s:%d%s", url_get_scheme_name(req), url_get_hostname(req), url_get_port(req), location);
-  } else {
-    snprintf(url, len, "%s://%s:%d/%s", url_get_scheme_name(req), url_get_hostname(req), url_get_port(req), location);
-  }
-  ret = new_url(url);
-  free(url);
-  return ret;
 }
 

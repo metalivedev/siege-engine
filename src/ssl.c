@@ -1,7 +1,7 @@
 /**
  * SSL Thread Safe Setup Functions.
  *
- * Copyright (C) 2002-2013 by
+ * Copyright (C) 2002-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege
  *
@@ -68,6 +68,10 @@ SSL_initialize(CONN *C)
 #ifdef HAVE_SSL
   int  i;
   int  serr;
+
+  if (C->ssl) {
+    return TRUE;
+  }
   
   C->ssl    = NULL;
   C->ctx    = NULL;
@@ -135,6 +139,10 @@ SSL_initialize(CONN *C)
   }
   SSL_set_fd(C->ssl, C->sock);
   serr = SSL_connect(C->ssl);
+  if (serr != 1) {
+    NOTIFY(ERROR, "Failed to make an SSL connection");
+    return FALSE;
+  }
   return TRUE;
 #else
   C->nossl = TRUE;

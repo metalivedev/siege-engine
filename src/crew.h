@@ -1,7 +1,7 @@
 /**
  * Thread pool
  *
- * Copyright (C) 2000-2013 by
+ * Copyright (C) 2003-2013 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is distributed as part of Siege
  *

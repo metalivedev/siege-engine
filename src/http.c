@@ -1,7 +1,7 @@
 /**
  * HTTP/HTTPS protocol support 
  *
- * Copyright (C) 2000-2013 by
+ * Copyright (C) 2000-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege 
  *
@@ -55,6 +55,7 @@ https_tunnel_request(CONN *C, char *host, int port)
     );    
     rlen = strlen(request); 
     echo ("%s", request);
+    C->encrypt = FALSE;
     if ((n = socket_write(C, request, rlen)) != rlen){
       NOTIFY(ERROR, "HTTP: unable to write to socket." );
       return FALSE;
@@ -108,11 +109,8 @@ http_get(CONN *C, URL U)
   char   portstr[16];
   char   fullpath[4096];
   char   cookie[MAX_COOKIE_SIZE+8];
-  time_t now;
   char * ifmod = url_get_if_modified_since(U);
   char * ifnon = url_get_etag(U);
-
-  now = time(NULL);
 
   memset(hoststr, '\0', sizeof hoststr);
   memset(cookie,  '\0', sizeof cookie);
@@ -170,9 +168,15 @@ http_get(CONN *C, URL U)
     }
   }
 
-  /* Only send the Host header if one wasn't provided. */
+  /* Only send the Host header if one wasn't provided by the configuration. */
   if (strncasestr(my.extra, "host:", sizeof(my.extra)) == NULL) {
-    rlen = snprintf(hoststr, sizeof(hoststr), "Host: %s\015\012", url_get_hostname(U));
+    // as per RFC2616 14.23, send the port if it's not default
+    if ((url_get_scheme(U) == HTTP  && url_get_port(U) != 80) || 
+        (url_get_scheme(U) == HTTPS && url_get_port(U) != 443)) {
+      rlen = snprintf(hoststr, sizeof(hoststr), "Host: %s:%d\015\012", url_get_hostname(U), url_get_port(U));
+    } else {
+      rlen = snprintf(hoststr, sizeof(hoststr), "Host: %s\015\012", url_get_hostname(U));
+    }
   }
 
   mlen = strlen(url_get_method_name(U)) +
@@ -322,9 +326,15 @@ http_post(CONN *C, URL U)
     }
   }
 
-  /* Only send the Host header if one wasn't provided. */
+  /* Only send the Host header if one wasn't provided by the configuration. */
   if (strncasestr(my.extra, "host:", sizeof(my.extra)) == NULL) {
-    rlen = snprintf(hoststr, sizeof(hoststr), "Host: %s\015\012", url_get_hostname(U));
+    // as per RFC2616 14.23, send the port if it's not default
+    if ((url_get_scheme(U) == HTTP  && url_get_port(U) != 80) ||
+        (url_get_scheme(U) == HTTPS && url_get_port(U) != 443)) {
+      rlen = snprintf(hoststr, sizeof(hoststr), "Host: %s:%d\015\012", url_get_hostname(U), url_get_port(U));
+    } else {
+      rlen = snprintf(hoststr, sizeof(hoststr), "Host: %s\015\012", url_get_hostname(U));
+    }
   }
 
   mlen = strlen(url_get_method_name(U)) +

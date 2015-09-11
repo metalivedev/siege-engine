@@ -63,7 +63,7 @@ DELAY, each siege simulated users sleeps for a random interval in seconds betwee
 BENCHMARK, runs the test with NO DELAY for throughput benchmarking. By default each simulated user is invoked with at least a one second delay. This option removes that delay.  It is not recommended that you use this option while load testing.
 .TP
 \fB\-r NUM\fR, \fB\-\-reps=NUM\fR,  \fB\-\-reps=once\fR
-REPS, allows you to run the siege for NUM repetitions. If \-\-reps=once, then siege will run through the urls.txt file one time and stop when it reaches the end. NOTE: \-t/\-\-time takes precedent over \-r/\-\-reps. If you want to use this option, make sure time = x is commented out in your $HOME/.siegerc file.
+REPS, allows you to run the siege for NUM repetitions. If \-\-reps=once, then siege will run through the urls.txt file and hit each URL in the file exactly once. The list will be divided among each simulated user. So if you run --reps=once -c10 on a file which contains 30 URLs, then each user will run three times. NOTE: \-t/\-\-time takes precedent over \-r/\-\-reps. If you want to use this option, make sure time = x is commented out in your $HOME/.siegerc file.
 .TP
 \fB\-t NUMm\fR, \fB\-\-time=NUMm\fR
 TIME, allows you to run the test for a selected period of time.  The format is "NUMm", where NUM is a time unit and the "m" modifier is either S, M, or H for seconds, minutes and hours.  To run siege for an hour, you could select any one of the following combinations: \-t3600S, \-t60M, \-t1H.  The modifier is not case sensitive, but it does require no space between the number and itself.

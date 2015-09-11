@@ -1,7 +1,7 @@
 /**
  * Hash Table
  *
- * Copyright (C) 2003 by
+ * Copyright (C) 2003-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>
  *
  * This program is free software; you can redistribute it and/or modify
