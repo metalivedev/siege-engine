@@ -1,4 +1,3 @@
-/* $Id: getopt1.c,v 1.1.1.1 2006/04/17 18:37:34 jdfulmer Exp $ */
 #include <config.h>
 #ifndef HAVE_GETOPT_LONG
 /* getopt_long and getopt_long_only entry points for GNU getopt.

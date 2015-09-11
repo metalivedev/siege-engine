@@ -1,7 +1,7 @@
 /**
  * Cookie support
  *
- * Copyright (C) 2001-2013 Jeffrey Fulmer <jeff@joedog.org>, et al
+ * Copyright (C) 2001-2014 Jeffrey Fulmer <jeff@joedog.org>, et al
  * This file is part of Siege
  *
  * This program is free software; you can redistribute it and/or modify

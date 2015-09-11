@@ -75,6 +75,9 @@
 /* Define to 1 if you have the <openssl/e_os.h> header file. */
 #undef HAVE_OPENSSL_E_OS_H
 
+/* Define to 1 if you have the `poll' function. */
+#undef HAVE_POLL
+
 /* Define to 1 if you have the <pthread.h> header file. */
 #undef HAVE_PTHREAD_H
 

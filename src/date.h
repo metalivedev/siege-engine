@@ -1,7 +1,7 @@
 /**
  * Date Header - date calculations for Siege
  *
- * Copyright (C) 2007 by
+ * Copyright (C) 2007-2013 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al.
  * This file is distributed as part of Siege 
  *

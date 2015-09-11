@@ -1,7 +1,7 @@
 /**
  * Client Header
  *
- * Copyright (C) 2013 by
+ * Copyright (C) 2013-2014 by
  * Jeffrey Fulmer, et al - <jeff@joedog.org>
  * This file is distributed as part of Siege 
  *
@@ -75,9 +75,9 @@ typedef struct
   } auth;
   int      status;
   float    time;
+  float    himark;
+  float    lomark;
   unsigned int rand_r_SEED;
-  float himark;
-  float lomark;
 } CLIENT;
 
 void * start_routine(CLIENT *client);

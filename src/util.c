@@ -1,7 +1,7 @@
 /**
  * Utility Functions
  *
- * Copyright (C) 2000-2007 by
+ * Copyright (C) 2000-2014 by
  * Jeffrey Fulmer - <jeff@joedog.org>, et al. 
  * This file is distributed as part of Siege 
  *
@@ -291,9 +291,13 @@ urandom()
 #ifdef HAVE_DEV_RANDOM
   int  rand = -1;
   int  fd;
+  int  len;
 
   if ((fd = open("/dev/urandom", O_RDONLY)) >= 0) {
-    read(fd, &rand, sizeof(rand));
+    len = read(fd, &rand, sizeof(rand));
+    if (len == -1) {
+      fprintf(stderr, "ERROR: failed to open /dev/urandom\n"); 
+    }
     close(fd);
   }
   return rand;
